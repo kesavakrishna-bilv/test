@@ -9,12 +9,12 @@ from google.protobuf import json_format
 from google.protobuf.struct_pb2 import Value
 from sklearn.metrics import confusion_matrix
 
-# Fetch the service account details from secrets
-service_account_info = st.secrets["gcp_service_account"]
+# Fetch the service account details from secrets and convert AttrDict to dict
+service_account_info = dict(st.secrets["gcp_service_account"])
 
 # Create a temporary file to store the service account key
 with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as temp_file:
-    temp_file.write(json.dumps(service_account_info).encode())
+    json.dump(service_account_info, temp_file)
     temp_file_path = temp_file.name
 
 # Set the GOOGLE_APPLICATION_CREDENTIALS environment variable to the path of the temporary file
