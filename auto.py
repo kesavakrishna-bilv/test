@@ -9,12 +9,22 @@ from google.protobuf import json_format
 from google.protobuf.struct_pb2 import Value
 from sklearn.metrics import confusion_matrix
 
+def convert_attrdict_to_dict(attrdict):
+    """Recursively convert AttrDict to a standard Python dictionary."""
+    if isinstance(attrdict, dict):
+        return {key: convert_attrdict_to_dict(value) for key, value in attrdict.items()}
+    elif isinstance(attrdict, list):
+        return [convert_attrdict_to_dict(item) for item in attrdict]
+    else:
+        return attrdict
+
 # Fetch the service account details from secrets and convert AttrDict to dict
-service_account_info = dict(st.secrets["gcp_service_account"])
+service_account_info = st.secrets["gcp_service_account"]
+service_account_dict = convert_attrdict_to_dict(service_account_info)
 
 # Create a temporary file to store the service account key
 with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as temp_file:
-    json.dump(service_account_info, temp_file)
+    json.dump(service_account_dict, temp_file)
     temp_file_path = temp_file.name
 
 # Set the GOOGLE_APPLICATION_CREDENTIALS environment variable to the path of the temporary file
