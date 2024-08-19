@@ -1,6 +1,10 @@
 import streamlit as st
 import pandas as pd
+import os
+import tempfile
+import json
 from google.cloud import aiplatform
+from google.oauth2 import service_account
 from google.protobuf import json_format
 from google.protobuf.struct_pb2 import Value
 from sklearn.metrics import confusion_matrix
@@ -8,13 +12,18 @@ from sklearn.metrics import confusion_matrix
 # Fetch the service account details from secrets
 service_account_info = st.secrets["gcp_service_account"]
 
-# Authenticate with the service account
-credentials = service_account.Credentials.from_service_account_info(service_account_info)
+# Create a temporary file to store the service account key
+with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as temp_file:
+    temp_file.write(json.dumps(service_account_info).encode())
+    temp_file_path = temp_file.name
+
+# Set the GOOGLE_APPLICATION_CREDENTIALS environment variable to the path of the temporary file
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = temp_file_path
 
 def predict_tabular_classification(project, endpoint_id, instance_dict, location="us-central1",
                                    api_endpoint="us-central1-aiplatform.googleapis.com"):
     client_options = {"api_endpoint": api_endpoint}
-    client = aiplatform.gapic.PredictionServiceClient(client_options=client_options, credentials=credentials)
+    client = aiplatform.gapic.PredictionServiceClient(client_options=client_options)
     instance = json_format.ParseDict(instance_dict, Value())
     instances = [instance]
     parameters_dict = {}
@@ -59,3 +68,6 @@ if uploaded_file is not None:
     cm = confusion_matrix(true_labels, predicted_labels)
     st.write("Confusion Matrix:")
     st.write(cm)
+
+# Clean up the temporary file after use
+os.remove(temp_file_path)
