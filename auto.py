@@ -1,34 +1,13 @@
 import streamlit as st
 import pandas as pd
-import os
-import tempfile
-import json
 from google.cloud import aiplatform
-from google.oauth2 import service_account
 from google.protobuf import json_format
 from google.protobuf.struct_pb2 import Value
+import os
 from sklearn.metrics import confusion_matrix
 
-def convert_attrdict_to_dict(attrdict):
-    """Recursively convert AttrDict to a standard Python dictionary."""
-    if isinstance(attrdict, dict):
-        return {key: convert_attrdict_to_dict(value) for key, value in attrdict.items()}
-    elif isinstance(attrdict, list):
-        return [convert_attrdict_to_dict(item) for item in attrdict]
-    else:
-        return attrdict
-
-# Fetch the service account details from secrets and convert AttrDict to dict
-service_account_info = st.secrets["gcp_service_account"]
-service_account_dict = convert_attrdict_to_dict(service_account_info)
-
-# Create a temporary file to store the service account key
-with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as temp_file:
-    json.dump(service_account_dict, temp_file)
-    temp_file_path = temp_file.name
-
-# Set the GOOGLE_APPLICATION_CREDENTIALS environment variable to the path of the temporary file
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = temp_file_path
+# Set the environment variable from secrets
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_PATH")
 
 def predict_tabular_classification(project, endpoint_id, instance_dict, location="us-central1",
                                    api_endpoint="us-central1-aiplatform.googleapis.com"):
@@ -78,6 +57,3 @@ if uploaded_file is not None:
     cm = confusion_matrix(true_labels, predicted_labels)
     st.write("Confusion Matrix:")
     st.write(cm)
-
-# Clean up the temporary file after use
-os.remove(temp_file_path)
