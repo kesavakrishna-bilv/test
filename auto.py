@@ -3,16 +3,18 @@ import pandas as pd
 from google.cloud import aiplatform
 from google.protobuf import json_format
 from google.protobuf.struct_pb2 import Value
-import os
 from sklearn.metrics import confusion_matrix
 
-# Set the environment variable from secrets
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_PATH")
+# Fetch the service account details from secrets
+service_account_info = st.secrets["gcp_service_account"]
+
+# Authenticate with the service account
+credentials = service_account.Credentials.from_service_account_info(service_account_info)
 
 def predict_tabular_classification(project, endpoint_id, instance_dict, location="us-central1",
                                    api_endpoint="us-central1-aiplatform.googleapis.com"):
     client_options = {"api_endpoint": api_endpoint}
-    client = aiplatform.gapic.PredictionServiceClient(client_options=client_options)
+    client = aiplatform.gapic.PredictionServiceClient(client_options=client_options, credentials=credentials)
     instance = json_format.ParseDict(instance_dict, Value())
     instances = [instance]
     parameters_dict = {}
